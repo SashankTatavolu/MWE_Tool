@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.sqlbook": "sql",
+        "*.ndjson": "jsonl",
+        "*.dbclient-js": "javascript",
+        "plyconfig.json": "jsonc"
+    },
+    "cSpell.words": [
+        "jsonify"
+    ],
+    "cmake.sourceDirectory": "/home/sashank/Downloads/ISHAAN workshop tools/MWE_tool/multiwordexpressionworkbench/linux"
+}

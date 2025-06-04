@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "plyconfig.json": "jsonc"
+    },
+    "cSpell.words": [
+        "gensalt",
+        "hashpw",
+        "ilike",
+        "jsonify",
+        "organisation"
+    ]
+}
