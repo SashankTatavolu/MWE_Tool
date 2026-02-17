@@ -9,31 +9,44 @@ from .. import db
 
 user_blueprint = Blueprint('user_blueprint', __name__)
 
-@user_blueprint.route('/register', methods=['POST'])
+@user_blueprint.route('/register', methods=['POST', 'OPTIONS'])
 def register_user():
-    data = request.get_json()
-    user = create_user(data)
+    if request.method == 'OPTIONS':
+        return '', 200
 
-    # Convert comma-separated string back to a list
+    data = request.get_json()
+    result = create_user(data)
+
+    if not result.get('success'):
+        return jsonify({
+            "success": False,
+            "message": result.get('message'),
+            "suggestion": result.get('suggestion')
+        }), 409
+
+    user = result['user']
     user_dict = {
         "id": user.id,
         "name": user.name,
         "email": user.email,
         "role": user.role,
         "organisation": user.organisation,
-        "language": user.language.split(",")  # Convert back to a list
+        "language": user.language.split(",")
     }
 
-    return jsonify(user_dict)
+    return jsonify({
+        "success": True,
+        "user": user_dict
+    }), 201
 
-
-
+    
+    
 @user_blueprint.route('/login', methods=['POST'])
 def login_user():
     data = request.get_json()
     user = check_user(data['email'], data['password'])
     if user:
-        expires = timedelta(minutes=30)
+        expires = timedelta(hours=8)
         access_token = create_access_token(identity=data['email'], expires_delta=expires)
         return jsonify(
             access_token=access_token,

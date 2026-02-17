@@ -10,6 +10,24 @@ from flask_mail import Message
 
 
 def create_user(data):
+    # Check if email already exists
+    existing_user = User.query.filter_by(email=data['email']).first()
+    if existing_user:
+        return {
+            "success": False,
+            "message": "Email already registered",
+            "suggestion": "Try logging in or use a different email address"
+        }
+
+    # Check if username (name) already exists (optional)
+    existing_name = User.query.filter_by(name=data['name']).first()
+    if existing_name:
+        return {
+            "success": False,
+            "message": "Username already taken",
+            "suggestion": "Try adding numbers or initials to make it unique"
+        }
+
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
 
     # Ensure language is always a list before joining
@@ -31,8 +49,11 @@ def create_user(data):
 
     db.session.add(new_user)
     db.session.commit()
-    return new_user
-
+    
+    return {
+        "success": True,
+        "user": new_user
+    }
 
 def check_user(email, password):
     user = User.query.filter_by(email=email).first()

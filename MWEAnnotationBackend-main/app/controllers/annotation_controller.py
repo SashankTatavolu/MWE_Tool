@@ -5,9 +5,28 @@ from ..models.annotation_model import Annotation
 from ..models.sentence_model import Sentence
 from ..schemas.annotation_schema import annotations_schema
 from ..services.annotation_service import  search_annotations, search_sentences_by_annotation, upload_annotated_xml, upload_annotations, get_annotations, get_project_annotations, \
-    generate_annotations_xml, generate_annotations_txt
+    generate_annotations_xml, generate_annotations_txt ,get_mwe_count_by_project, get_overall_mwe_count
 
 annotation_blueprint = Blueprint('annotation_blueprint', __name__)
+
+
+@annotation_blueprint.route("/mwe_count/<int:project_id>", methods=["GET"])
+@jwt_required()
+def get_mwe_count_project(project_id):
+    count = get_mwe_count_by_project(project_id)
+    return jsonify({
+        "project_id": project_id,
+        "mwe_count": count
+    }), 200
+
+
+@annotation_blueprint.route("/mwe_count_overall", methods=["GET"])
+@jwt_required()
+def get_mwe_count_overall():
+    count = get_overall_mwe_count()
+    return jsonify({
+        "overall_mwe_count": count
+    }), 200
 
 
 @annotation_blueprint.route("/add_annotations", methods=['POST'])
@@ -129,3 +148,30 @@ def search_sentences_by_annotation_route():
 
     results = search_sentences_by_annotation(annotation_text, project_title)
     return jsonify(results), 200
+
+
+@annotation_blueprint.route("/last_progress", methods=["POST"])
+@jwt_required()
+def get_last_progress():
+    current_user = get_jwt_identity()
+    project_id = request.json.get("project_id")
+
+    if not project_id:
+        return jsonify({"message": "project_id is required"}), 400
+
+    last_annotation = (
+        Annotation.query
+        .filter_by(
+            annotated_by=current_user,
+            project_id=project_id
+        )
+        .order_by(Annotation.annotated_on.desc())
+        .first()
+    )
+
+    if not last_annotation:
+        return jsonify({"sentence_id": None}), 200
+
+    return jsonify({
+        "sentence_id": last_annotation.sentence_id
+    }), 200

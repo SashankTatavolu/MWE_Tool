@@ -6,11 +6,26 @@ from app.models.project_model import Project
 import xml.etree.ElementTree as ET
 import html
 import re
+from sqlalchemy import func
 import datetime
 
 from .. import db
 from ..models.annotation_model import Annotation
 from ..models.sentence_model import Sentence
+
+
+
+def get_mwe_count_by_project(project_id):
+    count = (
+        db.session.query(func.count(Annotation.id))
+        .filter(Annotation.project_id == project_id)
+        .scalar()
+    )
+    return count
+
+def get_overall_mwe_count():
+    count = db.session.query(func.count(Annotation.id)).scalar()
+    return count
 
 
 def upload_annotations(annotations_data, user):

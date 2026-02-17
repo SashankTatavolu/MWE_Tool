@@ -5,6 +5,7 @@ from flask_mail import Mail
 from ..models.user_model import User
 from ..schemas.sentence_schema import sentences_schema
 from ..models.sentence_model import Sentence
+from ..models.annotation_model import Annotation
 from .. import db
 from ..models.project_model import Project
 from ..services.sentence_service import get_sentences, send_assignment_email
@@ -175,3 +176,67 @@ def assign_sentences():
     return jsonify({"message": message}), 200
 
         
+@sentence_blueprint.route('/update_sentence_text', methods=['PUT'])
+@jwt_required()
+def update_sentence_text():
+    current_email = get_jwt_identity()
+    user = User.query.filter_by(email=current_email).first()
+
+    data = request.get_json()
+    sentence_id = data.get("sentence_id")
+    new_text = data.get("new_text")
+
+    if not sentence_id or not new_text:
+        return jsonify({"message": "sentence_id and new_text are required"}), 400
+
+    sentence = Sentence.query.get(sentence_id)
+
+    if not sentence:
+        return jsonify({"message": "Sentence not found"}), 404
+
+    project = Project.query.get(sentence.project_id)
+
+    if not project or project.assigned_to != user.id:
+        return jsonify({"message": "You are not assigned to this project"}), 403
+
+    # 🚫 Optional: Block if already annotated
+    # if sentence.is_annotated:
+    #     return jsonify({"message": "Cannot edit annotated sentence"}), 400
+
+    # 🧹 Clear annotations since sentence changed
+    Annotation.query.filter_by(sentence_id=sentence.id).delete()
+
+    # 📝 Overwrite original content
+    sentence.content = new_text
+    sentence.is_annotated = False
+
+    db.session.commit()
+
+    return jsonify({"message": "Sentence updated successfully"}), 200
+
+@sentence_blueprint.route('/mark_sentence_complete', methods=['PUT'])
+@jwt_required()
+def mark_sentence_complete():
+    current_email = get_jwt_identity()
+    user = User.query.filter_by(email=current_email).first()
+
+    data = request.get_json()
+    sentence_id = data.get("sentence_id")
+
+    if not sentence_id:
+        return jsonify({"message": "sentence_id is required"}), 400
+
+    sentence = Sentence.query.get(sentence_id)
+
+    if not sentence:
+        return jsonify({"message": "Sentence not found"}), 404
+
+    # Project-level permission check
+    project = Project.query.get(sentence.project_id)
+    if not project or project.assigned_to != user.id:
+        return jsonify({"message": "You are not assigned to this project"}), 403
+
+    sentence.is_completed = True
+    db.session.commit()
+
+    return jsonify({"message": "Sentence marked as completed"}), 200
